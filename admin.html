@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel - Activate Users</title>
+  <style>
+    body {
+      background: #0b0c10;
+      color: #66fcf1;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #1f2833;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #45a29e;
+      text-align: left;
+    }
+    th {
+      background: #45a29e;
+      color: #0b0c10;
+    }
+    button {
+      background: #45a29e;
+      border: none;
+      color: #0b0c10;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #66fcf1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Panel - Activate Users</h1>
+  <p>Click “Activate” to give user full access without monthly password.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Subscribed</th>
+        <th>Activation Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="usersTableBody"></tbody>
+  </table>
+
+  <script>
+    function checkExpiredSubscriptions(users) {
+      const now = new Date();
+
+      users.forEach(user => {
+        if (user.subscribed && user.activationDate) {
+          const activated = new Date(user.activationDate);
+          const diffDays = Math.floor((now - activated) / (1000 * 60 * 60 * 24));
+          if (diffDays > 30) {
+            // Expire subscription
+            user.subscribed = false;
+            delete user.activationDate;
+          }
+        }
+      });
+
+      return users;
+    }
+
+    function loadUsers() {
+      let users = JSON.parse(localStorage.getItem('users')) || [];
+      users = checkExpiredSubscriptions(users);
+      localStorage.setItem('users', JSON.stringify(users));
+
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+
+      users.forEach((user, index) => {
+        const activationDate = user.activationDate ? new Date(user.activationDate).toLocaleDateString() : '-';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${user.email}</td>
+          <td>${user.subscribed ? "Yes" : "No"}</td>
+          <td>${activationDate}</td>
+          <td>
+            <button onclick="toggleSubscription(${index})">
+              ${user.subscribed ? "Deactivate" : "Activate"}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleSubscription(index) {
+      let users = JSON.parse(localStorage.getItem('users')) || [];
+      if (users[index].subscribed) {
+        users[index].subscribed = false;
+        delete users[index].activationDate;
+      } else {
+        users[index].subscribed = true;
+        users[index].activationDate = new Date().toISOString();
+      }
+      localStorage.setItem('users', JSON.stringify(users));
+      loadUsers();
+      alert(`User ${users[index].email} is now ${users[index].subscribed ? 'Activated' : 'Deactivated'}.`);
+    }
+
+    // Load users and check expiries when page loads
+    loadUsers();
+  </script>
+
+</body>
+</html>
